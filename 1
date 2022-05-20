@@ -1,0 +1,225 @@
+CSCI 4622 - Spring 2018 - Practicum
+This practicum is due on Moodle by 11:59pm on Thursday May 3rd.
+
+Here are the rules:
+
+Your work must be done entirely on your own. You may NOT collaborate with classmates or anyone else.
+You may NOT post to message boards or other online resources asking for help.
+You may NOT use late days on the practicum nor can you drop your practicum grade.
+You may use your course notes, posted lecture slides, in-class notebooks, and homework solutions as resources.
+You may consult alternate sources like blog posts or technical papers, but you may NOT copy code from these sources.
+Any additional non-course sources that you use should be clearly cited (with links) in the References section at the bottom of this notebook.
+Submit only this Jupyter notebook to Moodle. Do not compress it using tar, rar, zip, etc.
+Violation of the above rules will result in an F in the course and a trip to Honor Council
+
+By writing your name below you agree to abide by the given rules:
+
+Name: Blake Galbavy
+
+Kaggle Username: Blake Galbavy
+
+NOTES:
+
+You do not need to implement everything from scratch. At this point you should be leveraging Sklearn as much as you can.
+If you have a clarifying question, please post it as a PRIVATE message to me on Piazza.
+Part of the goal of this assignment is to see if you can stand on your own. Please do not ask me to help you debug code or check if your answers are correct. Most of the implementation details necessary to complete this practicum can be found in the Hands-On notebooks or the Sklearn documentation.
+You'll notice that the point totals below do not add up to 100. This is because 10 out of the 100 points will be attributed to style. To earn full credit for style your analysis should be concise and well-organized, your code should be readable and well-commented, and you should use plots and graphics to support your conclusions whenever appropriate.
+import pickle, gzip 
+import numpy as np
+import pandas as pd
+[35 points] Problem 1: Building Classifiers for Fashion MNIST
+The classic MNIST Handwritten Digit data set has been a staple in the machine learning literature since the beginning of time (i.e. the late 90's). However, machine learning practitioners have grown tired of the rusty digits and have recently begun to create and explore new, more interesting data sets. Some popular alternatives to emerge recently are EMNIST, Sign Language MNIST, and Fashion MNIST. In this problem you will explore the latter.
+
+Fashion MNIST is comprised of  pixel gray-scale images of clothing, with classes corresponding to things like tops, trousers, coats, dresses, and various types of shoes. The data set that we'll work with corresponds to a small subset of Fashion MNIST with 1500 examples from each of five distinct classes (tops, trousers, coats, sneakers, and ankle boots).
+
+Execute the following cell to load the data.
+
+f = gzip.open('data/fashion_mnist_subset.pklz', 'rb')
+X_all, y_all = pickle.load(f)
+print(y_all)
+f.close()
+[1 1 1 ..., 0 0 9]
+In Parts A-C you will construct various tuned classifiers for making predictions on Fashion MNIST. For each classifier you should:
+
+Describe and motivate any transformations on the pixel data that you found helpful/necessary to make your model work well.
+Describe and justify your process for determining optimal hyperparameters for each model. Support your decisions with validation studies and associated graphics. Do NOT just report the hyperparameters that worked best.
+Describe how you evaluated your models during your process (i.e. did you use a validation set, did you do cross-validation, etc).
+Report the final optimal hyperparameters that you used as well as the accuracy of your final model.
+Part A: Construct a K-Nearest Neighbors classifier to make predictions on the data.
+
+I am going to split the data using the 70% training data 30% validation data general rule
+
+import math
+def train_valid_split(X_all, y_all, train_frac=0.7):
+        """
+        Randomly splits the data into training and validation sets 
+
+        :param X: (n x p) ndarray of feature data 
+        :param y: (n x 1) ndarray of labels/targets  
+        :param train_frac: float indicating fraction of data to train on 
+        """
+        data = []
+        X_train = []
+        y_train = []
+        X_valid = []
+        y_valid = []
+        rowCount = len(X_all)
+        trainDataProportion = math.ceil(rowCount*train_frac)
+        randTrainRows = np.random.choice(rowCount, size = trainDataProportion, replace=False) 
+        #iterating through all the rows
+        for i in range(0, rowCount):
+            #if this particular row is in our randomly selected "train" then append our x and y
+            if(i in randTrainRows):
+                X_train.append(X_all[i])
+                y_train.append(y_all[i])
+            #if its not then put it in the valid set
+            else:
+                X_valid.append(X_all[i])
+                y_valid.append(y_all[i])
+        
+        #need to make it a numpy array
+        X_train = np.array(X_train)
+        y_train = np.array(y_train)
+        X_valid = np.array(X_valid)
+        y_valid = np.array(y_valid)
+        data.append(X_train)
+        data.append(y_train)
+        data.append(X_valid)
+        data.append(y_valid)
+        return data
+        
+split_data = train_valid_split(X_all, y_all)
+X_train = split_data[0]
+y_train = split_data[1]
+X_valid = split_data[2]
+y_valid = split_data[3]
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+# neigh = KNeighborsClassifier(n_neighbors=5)
+# neigh.fit(X_train, y_train)
+# acc = accuracy_score(neigh.predict(X_valid), y_valid)
+# print(acc)
+accuracy_list = []
+for i in range(1, 24, 2):
+    neigh = KNeighborsClassifier(n_neighbors=i)
+    neigh.fit(X_train, y_train)
+    acc = accuracy_score(neigh.predict(X_valid), y_valid)
+    accuracy_list.append(acc)
+# for i in range(10, 24, 2):
+#     neigh = KNeighborsClassifier(n_neighbors=i)
+#     neigh.fit(X_train, y_train)
+#     acc = accuracy_score(neigh.predict(X_valid), y_valid)
+#     accuracy_list.append(acc)
+#print(accuracy_list)   
+accuracy_list_weighted = []
+for i in range(1, 24, 2):
+    neigh = KNeighborsClassifier(n_neighbors=i, weights='distance')
+    neigh.fit(X_train, y_train)
+    acc = accuracy_score(neigh.predict(X_valid), y_valid)
+    accuracy_list_weighted.append(acc)
+print(accuracy_list_weighted)
+[0.95466666666666666, 0.96177777777777773, 0.95911111111111114, 0.9582222222222222, 0.95599999999999996, 0.9555555555555556, 0.95511111111111113, 0.95333333333333337, 0.95244444444444443, 0.94933333333333336, 0.94977777777777783, 0.95022222222222219]
+It will take about 2 minutes and 30 seconds due to the number of iterations I compute.
+
+import matplotlib.pyplot as plt
+x_axis = []
+for i in range(1, 24, 2):
+    x_axis.append(i)
+# for i in range(10, 24, 2):
+#     x_axis.append(i)
+print(x_axis)
+plt.figure(figsize=(15,10))
+plt.xlabel("Number of Neighbors")
+#x=range(len(x_axis))
+#plt.xticks(x,x_axis)
+plt.ylabel("Acurracy")
+plt.title("KNN Accuracy")
+plt.plot(x_axis, accuracy_list, label = "unweighted")
+plt.plot(x_axis, accuracy_list_weighted, label="weighted")
+plt.legend()
+plt.show()
+[1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23]
+
+In other simulations, after trying n_neighbors > 20 and after, I saw that the accuracy was around 0.955, where it decreases even more to 0.953 at 25, barely increasing to 0.954 at 30 and decreasing up until 40, to where I have good evidence it would just alternate between small increments and larger decrements after 40.
+
+In short, the model after 20 n_neighbors, ceases to get even close to the accuracy nearest neighbors of 1 through 10. For this reason, I chose to remake my graph computing the accuracy from 1 to 20 n_neighbors only. For time computation sake, I computed the accuracy of every other n_neighbors 1 to 24, ultimately giving a nicer curve as well.
+
+The maximum accuracy was given by n_neighbors = 4 in the "KNeighborsClassifier" function, with value ~ 0.962, when using weighted KNN and 0.9615 when using unweighted KNN. This is dependent on how the data was split into training and validation sets earlier in problem 1.a. The other times I have ran new training/validation sets, 4 or 5 seems to be consistently the best n_neighbors parameter and weighted is slightly better than unweighted.
+
+Part B: Construct a Linear Support Vector Machine classifier to make predictions on the data.
+
+from sklearn.svm import LinearSVC
+clf = LinearSVC(random_state=0)
+clf.fit(X_train, y_train)
+# print(clf.coef_)
+# print(clf.intercept_)
+# print(clf.predict(X_train))
+print("Accuracy when C = 1.0: ", clf.score(X_valid, y_valid))
+Accuracy when C = 1.0:  0.958222222222
+Lets change our C parameter in LinearSVC and see which gives the most accurate result.
+
+from sklearn.svm import LinearSVC
+C_param = 0
+clf_accuracy_list_hinge = []
+clf_accuracy_list_square = []
+while(1):
+    C_param = C_param + 2
+    if(C_param > 40):
+        break
+    clf = LinearSVC(C=C_param, loss="hinge")
+    clf.fit(X_train, y_train)
+    accuracy_clf = clf.score(X_valid, y_valid)
+    clf_accuracy_list_hinge.append(accuracy_clf)
+C_param_squared = 0
+while(1):
+    C_param_squared = C_param_squared + 2
+    if(C_param_squared > 40):
+        break
+    clf = LinearSVC(C=C_param_squared, loss="squared_hinge")
+    clf.fit(X_train, y_train)
+    accuracy_clf = clf.score(X_valid, y_valid)
+    clf_accuracy_list_square.append(accuracy_clf)
+x_axis = np.arange(0, 40, 2)
+
+plt.figure(figsize=(15,10))
+plt.plot(x_axis, clf_accuracy_list_hinge, color="darkblue", label = "hinge")
+plt.plot(x_axis, clf_accuracy_list_square, color="darkred", label = "sqaured_hinge")
+plt.xlabel("C Value")
+plt.ylabel("Accuracy out of 1.0")
+plt.title("Linear Vector Machine Accuracy per C Value")
+plt.legend()
+plt.show()
+20
+20
+[0.95911111111111114, 0.95999999999999996, 0.96044444444444443, 0.95999999999999996, 0.95955555555555561, 0.95955555555555561, 0.95911111111111114, 0.95955555555555561, 0.95999999999999996, 0.95955555555555561, 0.95911111111111114, 0.95866666666666667, 0.95955555555555561, 0.95999999999999996, 0.95955555555555561, 0.95955555555555561, 0.95911111111111114, 0.95911111111111114, 0.95999999999999996, 0.95911111111111114]
+[0.95866666666666667, 0.95866666666666667, 0.95955555555555561, 0.95999999999999996, 0.95911111111111114, 0.95911111111111114, 0.95911111111111114, 0.96044444444444443, 0.95911111111111114, 0.95911111111111114, 0.95999999999999996, 0.95911111111111114, 0.95911111111111114, 0.95911111111111114, 0.95777777777777773, 0.95955555555555561, 0.95866666666666667, 0.95866666666666667, 0.95866666666666667, 0.95999999999999996]
+
+As seen above, the blue line is consistently higher than the red line. This means that the "hinge" parameter is better than using the "square_hinge" data model. At C=4 our blue line is at a complete peak and the accuracy is the highest it gets throughout the whole model. Therefore, parameters "hinge" data model and C value = 4 are the most optimal for the Linear Support Vector Machine classifier.
+
+This gives us an accuracy of: 0.9605
+
+Part C: Construct a Feed-Forward Neural Network classifier to make predictions on the data. We recommend using Sklearn's MLPClassifier rather than the code you wrote in Homework 4. In our experiments we found training an MLPClassifier to take no more than a minute for reasonable choices of architectures.
+
+I will plot models changing hidden_layer_sizes, solver, activation, alpha, and learning_rate.
+
+from sklearn.neural_network import MLPClassifier
+new_MLP = MLPClassifier(hidden_layer_sizes=(100,), solver='adam' ,activation='relu', alpha=0.0001, learning_rate='constant')
+new_MLP.fit(X_train, y_train)
+
+param_hls = []
+for i in range(10, 330, 30):
+    new_MLP = MLPClassifier(hidden_layer_sizes=(i,), solver='adam' ,activation='relu', alpha=0.0001, learning_rate='constant')
+    new_MLP.fit(X_train, y_train)
+    accur_new_MLP = new_MLP.score(X_valid, y_valid)
+    param_hls.append(accur_new_MLP)
+    
+    
+x_axis = np.arange(10,330,30)
+plt.figure(figsize=(10,6))
+plt.plot(x_axis, param_hls, color="darkblue")
+plt.xlabel("Hidden Layer Sizes")
+plt.ylabel("Accuracy")
+plt.title("Feed-Forward Neural Network Classifier for Hidden Layer Sizes")
+plt.show()
+    
+    
